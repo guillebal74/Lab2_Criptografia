@@ -2,11 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web;
+using System.IO;
 
 namespace LaboratorioCriptografia.Data
 {
     public class Caesar
     {
+        private static Caesar _instance = null;
+        public static Caesar Instance
+        {
+            get
+            {
+                if (_instance == null) _instance = new Caesar();
+                return _instance;
+            }
+        }
         public Dictionary<char, char> DiccionarioChechaMayus;
         public Dictionary<char, char> DiccionarioChechaMinus;
         public static string Alfabeto = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ .,:;¿?¡!1234567890";
@@ -15,9 +26,13 @@ namespace LaboratorioCriptografia.Data
         //public string claveChechaMin = "dovahkin" + AlfabetoMin;
         //_ =  new string ("");
         string mensajeEncriptado = "";
-        void EncriptarChecha(string clave)
+        HttpPostedFileBase File;
+        string Ruta;
+        void EncriptarChecha(HttpPostedFileBase postedFile, string ruta,string clave)
         {
-
+            var file = new FileStream(File.FileName, FileMode.Open); // cambiar a dinamico
+            var lectura = new BinaryReader(file);
+            var Buffer = new byte[1000000];
             string claveMayusculas;
             claveMayusculas = clave.ToUpper() + Alfabeto.ToUpper();
             clave += AlfabetoMin;
@@ -32,26 +47,27 @@ namespace LaboratorioCriptografia.Data
             {
                 DiccionarioChechaMinus.Add(AlfabetoMin[k], r[k]);
             }
-            string MensajeAEncriptar = Console.ReadLine();
+
+            Buffer = lectura.ReadBytes(1000000);
             string Encriptado = "";
-            MensajeAEncriptar.ToCharArray();
-            for (int j = 0; j < MensajeAEncriptar.Length; j++)
+            //MensajeAEncriptar.ToCharArray();
+            for (int j = 0; j < Buffer.Length; j++)
             {
-                if (char.IsUpper(MensajeAEncriptar[j]))
+                if (char.IsUpper((char)Buffer[j]))
                 {
-                    if (DiccionarioChechaMayus.ContainsKey(MensajeAEncriptar[j]))
+                    if (DiccionarioChechaMayus.ContainsKey((char)Buffer[j]))
                     {
                         //char joto = MensajeAEncriptar[j];
-                        Encriptado = DiccionarioChechaMayus[MensajeAEncriptar[j]].ToString();
+                        Encriptado = DiccionarioChechaMayus[(char)Buffer[j]].ToString();
                         mensajeEncriptado += Encriptado;
                     }
                 }
                 else
                 {
-                    if (DiccionarioChechaMinus.ContainsKey(MensajeAEncriptar[j]))
+                    if (DiccionarioChechaMinus.ContainsKey((char)Buffer[j]))
                     {
                         //char joto = MensajeAEncriptar[j];
-                        Encriptado = DiccionarioChechaMinus[MensajeAEncriptar[j]].ToString();
+                        Encriptado = DiccionarioChechaMinus[(char)Buffer[j]].ToString();
                         mensajeEncriptado += Encriptado;
                     }
                 }
@@ -60,6 +76,28 @@ namespace LaboratorioCriptografia.Data
         public static string RemoverLetrasRepetidas(string input)
         {
             return new string(input.ToCharArray().Distinct().ToArray());
+        }
+        void DesencriptarChecha()
+        {
+            const int bufferLength = 100000;
+            using (var stream = new FileStream(File.FileName, FileMode.Open))
+            {
+                using (var reader = new BinaryReader(stream))
+                {
+                    using (var writeStream = new FileStream(File.FileName, FileMode.OpenOrCreate))
+                    {
+                        using (var writer = new BinaryWriter(writeStream))
+                        {
+                            var byteBuffer = new byte[bufferLength];
+                            while (reader.BaseStream.Position != reader.BaseStream.Length)
+                            {
+                                byteBuffer = reader.ReadBytes(bufferLength);
+                                writer.Write(byteBuffer);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
